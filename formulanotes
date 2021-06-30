@@ -1,0 +1,167 @@
+formula box s formula set krenge or update krenge
+NODE JS IS A RUN TIME ENVIORNMENT FOR SERVER-SIDE AND NETWORKIG  APLLICATION
+OPEN SOURCE->>PEOPLE CAN MODIFY BCZ IS IS DESIGN FOR PUBLIC ACCESS
+
+for(let i=0;i<allcell.length;i++){
+    //blur event jb chlta h jb wo focus sht jata h 
+    //A-> b->c in this b is in blur c is in focusnow a>b->v->m now v is in blur last selected cell;
+    allcell[i].addEventListener("blur",function(){
+        let data=allcell[i].innerText;
+       let address=addressBox.value;
+        let rid=allcell[i].getAttribute("rid");
+        let cid=allcell[i].getAttribute("cid");
+        let cellObject=sheetDB[rid][cid];
+         
+         if(cellObject.value==data){
+             return ;
+         }
+         // jb humkhudse cell k ander value chnagekre
+         if(cellObject.formula){
+            console.log ("hi");
+            removeFormula(address,cellObject);
+             formulaBar="";
+         }
+         cellObject.value=data;
+
+         updateChildren(cellObject);
+        
+    })
+}
+function removeFormula(address,cellObject){
+    console.log(cellObject.formula);
+    let formula=cellObject.formula;
+   console.log(formula);
+   console.log(  address);
+   formulaToken =formula.split(" ");
+    for(let i=0;i<formulaToken.length;i++){
+        let ascii=formulaToken[i].charCodeAt(0);// charCodeAt() method returns the Unicode of the character at the specified index in a string.
+        //value of that charracter
+        console.log(ascii);
+        if(ascii>=65&& ascii<=90){
+            let {rid,cid}=getERidCid(formulaToken[i]);
+             console.log(rid);
+             console.log(cid);
+
+           parentObj= sheetDB[rid][cid];
+
+           console.log(parentObj)
+           let idx =parentObj.children.indexOf(address);
+           console.log(idx);
+ console.log(          parentObj.children.splice(idx,1));//splice(idx from where u want to strt,no of element u want to remove last value also includes)
+           //slice( idx ,value)->strt from index but exclude last value;only bw from strt idx to value-1'
+          
+           cellObject.formula="";}}
+           
+
+}
+formulaBar.addEventListener("keydown",function(e){
+    if(e.key=="Enter"&&formulaBar.value){
+        let currentFormula=formulaBar.value;
+       console.log(currentFormula)
+        let address=addressBox.value;
+        let {rid,cid}=getERidCid(address);
+        let cellObject=sheetDB[rid][cid];
+        // jb hum formula bar m change kiya
+        console.log(cellObject.formula);
+        if(cellObject.formula!=currentFormula){
+
+            console.log("formula chngreedd");
+            removeFormula(address,cellObject);
+        }
+        let value=evaluateFormula(currentFormula);
+ 
+          setCell(value,currentFormula);
+         setParentCHArray(address,currentFormula);
+    }
+})
+function evaluateFormula(formulaTokens){
+    
+    formulaTokens=formulaTokens.split(" ");
+    //( A1 + A2 )
+for(let i=0;i<formulaTokens.length;i++){
+           let ascii=formulaTokens[i].charCodeAt(0);
+           if(ascii>=65&&ascii<=90){
+               let{rid,cid}=getERidCid(formulaTokens[i]);
+                formulaTokens[i]=sheetDB[rid][cid].value;
+                
+           }
+
+}
+let evaluate=formulaTokens.join(" ");
+return eval(evaluate);
+
+    }
+
+function setCell(value,currentFormula){
+    let uicellElement=finduiElement();
+   
+    uicellElement.innerText=value;
+
+
+    let rid=uicellElement.getAttribute("rid");
+    let cid=uicellElement.getAttribute("cid");
+    sheetDB[rid][cid].value=value;
+    sheetDB[rid][cid].formula=currentFormula;
+
+
+}
+
+function finduiElement(){
+    let address=addressBox.value;
+  
+    let ridcid=getERidCid(address);
+    let rid=ridcid.rid;
+    let cid=ridcid.cid;
+    let uicellElement=document.querySelector(`.cell[rid="${rid}"][cid="${cid}"]`);
+
+    
+return uicellElement;
+}
+function getERidCid(address){
+    let cid=Number(address.charCodeAt(0))-65;
+    let rid=Number(address.slice(1))-1;
+
+    
+    return{
+        "rid":rid,
+        "cid":cid
+    }
+   
+}
+function  setParentCHArray(address,formula){
+     formulas=formula.split(" ");
+     for(let i=0;i<formulas.length;i++){
+         let ascii=formulas[i].charCodeAt(0);// charCodeAt() method returns the Unicode of the character at the specified index in a string.
+         //value of that charracter
+         if(ascii>=65&& ascii<=90){
+        let ridcid=getERidCid(formulas[i]);
+        let rid=ridcid.rid;
+        console.log("rid is"+ rid);
+        let cid=ridcid.cid;
+        console.log("cid is "+ cid);
+        let parentObj= sheetDB[rid][cid];
+        console.log(parentObj);
+  console.log(      parentObj.children.push(address));
+  console.log( parentObj.children.indexOf(address));
+         }
+     }
+}
+function updateChildren(cellObject){
+      let children=cellObject.children;
+      for(let i=0;i<children.length;i++){
+          let {rid,cid}=getERidCid(children[i]);
+         
+          let childObj=sheetDB[rid][cid];
+          let newformula=childObj.formula;
+          
+          let newValue=evaluateFormula(newformula);
+         
+          setChildrenCell(newValue,newformula,rid,cid);
+          updateChildren(childObj);// children k object passkr do taki uske or bhi children bhi update ho jae
+      }
+}function setChildrenCell(newValue,newformula,rid,cid){
+    let uicellElem=document.querySelector(`.cell[rid="${rid}"][cid="${cid}"]`)
+       uicellElem.innerText=newValue;
+       sheetDB[rid][cid].formula=newformula;
+       sheetDB[rid][cid].value=newValue;
+}
